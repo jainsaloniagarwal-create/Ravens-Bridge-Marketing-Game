@@ -1,1 +1,1207 @@
-# Ravens-Bridge-Marketing-Game
+# <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raven's Bridge — Host Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<style>
+  :root {
+    --forest: #1a2e1a;
+    --moss: #2d4a2d;
+    --sage: #7a9e7e;
+    --gold: #c9a84c;
+    --amber: #e8b84b;
+    --cream: #f5f0e8;
+    --parchment: #ede4d0;
+    --ink: #1c1810;
+    --stone: #8a8278;
+    --rust: #8b3a2a;
+    --shadow: rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Lora', serif;
+    background: var(--forest);
+    color: var(--cream);
+    min-height: 100vh;
+    background-image: 
+      radial-gradient(ellipse at 20% 50%, rgba(45,74,45,0.8) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(26,46,26,0.9) 0%, transparent 50%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid rgba(201,168,76,0.3);
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .raven-icon {
+    width: 38px;
+    height: 38px;
+    opacity: 0.9;
+  }
+
+  .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.04em;
+    color: var(--amber);
+  }
+
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--sage);
+    text-transform: uppercase;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .host-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    background: rgba(201,168,76,0.12);
+    border: 1px solid rgba(201,168,76,0.35);
+    padding: 6px 14px;
+    text-transform: uppercase;
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    height: calc(100vh - 73px);
+  }
+
+  /* LEFT SIDEBAR */
+  .sidebar {
+    border-right: 1px solid rgba(201,168,76,0.2);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 10px;
+  }
+
+  .session-card {
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.25);
+    padding: 16px;
+  }
+
+  .room-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .room-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--stone);
+    letter-spacing: 0.1em;
+  }
+
+  #qr-container {
+    background: var(--cream);
+    padding: 10px;
+    display: inline-block;
+    margin-top: 12px;
+  }
+
+  #qr-container canvas { display: block; }
+
+  .client-url {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--sage);
+    word-break: break-all;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--stone);
+    transition: background 0.4s;
+  }
+  .status-dot.connected { background: #6dbf6d; box-shadow: 0 0 8px rgba(109,191,109,0.6); }
+  .status-dot.waiting { background: var(--amber); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  #status-text { color: var(--stone); }
+
+  .round-tracker {
+    display: flex;
+    gap: 8px;
+  }
+
+  .round-pip {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    transition: background 0.4s;
+  }
+  .round-pip.done { background: var(--sage); }
+  .round-pip.active { background: var(--amber); }
+
+  .score-mini {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .score-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 10px;
+    text-align: center;
+  }
+
+  .score-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--amber);
+    display: block;
+  }
+
+  .score-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--stone);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 3px;
+    display: block;
+  }
+
+  /* MAIN CONTENT */
+  .content {
+    padding: 28px 36px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .phase-banner {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--sage);
+  }
+
+  .attraction-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .attraction-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.1;
+  }
+
+  .attraction-subtitle {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    color: var(--sage);
+    margin-top: 6px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .round-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.4);
+    color: var(--gold);
+    padding: 8px 14px;
+    white-space: nowrap;
+    align-self: start;
+  }
+
+  .narration-box {
+    background: rgba(0,0,0,0.25);
+    border-left: 3px solid var(--gold);
+    padding: 16px 20px;
+    font-style: italic;
+    color: var(--parchment);
+    line-height: 1.7;
+    font-size: 0.95rem;
+  }
+
+  .narration-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+    font-style: normal;
+  }
+
+  .choices-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .choice-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 18px 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .choice-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(201,168,76,0.08);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .choice-btn:hover::before { opacity: 1; }
+  .choice-btn:hover { border-color: rgba(201,168,76,0.5); }
+
+  .choice-btn.selected {
+    border-color: var(--amber);
+    background: rgba(201,168,76,0.12);
+  }
+
+  .choice-icon {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .choice-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--cream);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .choice-desc {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--stone);
+    line-height: 1.5;
+    letter-spacing: 0.03em;
+  }
+
+  /* Result panel */
+  .result-panel {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.3);
+    padding: 22px;
+    display: none;
+  }
+
+  .result-panel.show { display: block; animation: fadeIn 0.4s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--amber);
+    margin-bottom: 16px;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .result-stat {
+    text-align: center;
+    padding: 12px 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .result-stat .val {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 500;
+    display: block;
+    color: var(--amber);
+  }
+
+  .result-stat .lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    color: var(--stone);
+    text-transform: uppercase;
+    display: block;
+    margin-top: 4px;
+  }
+
+  .result-narrative {
+    font-style: italic;
+    color: var(--parchment);
+    line-height: 1.7;
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 14px;
+  }
+
+  /* Bar meter */
+  .meter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .meter-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--stone);
+    width: 130px;
+    letter-spacing: 0.08em;
+  }
+
+  .meter-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+  }
+
+  .meter-fill {
+    height: 100%;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    background: var(--sage);
+  }
+
+  .meter-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--amber);
+    width: 30px;
+    text-align: right;
+  }
+
+  /* Control buttons */
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--ink);
+  }
+
+  .btn-primary:hover { background: var(--amber); }
+  .btn-primary:disabled { background: var(--stone); cursor: not-allowed; opacity: 0.5; }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--cream);
+  }
+
+  .btn-secondary:hover { border-color: var(--sage); color: var(--sage); }
+
+  .btn-danger {
+    background: transparent;
+    border: 1px solid rgba(139,58,42,0.6);
+    color: #c06a5a;
+  }
+
+  .btn-danger:hover { background: rgba(139,58,42,0.2); }
+
+  /* Final screen */
+  .final-screen {
+    display: none;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .final-screen.show { display: block; }
+
+  .final-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+
+  .final-sub {
+    color: var(--sage);
+    font-style: italic;
+    margin-bottom: 24px;
+  }
+
+  .final-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .final-stat {
+    background: rgba(201,168,76,0.07);
+    border: 1px solid rgba(201,168,76,0.25);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .final-stat .big-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: var(--amber);
+    display: block;
+  }
+
+  .final-stat .big-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    color: var(--stone);
+    text-transform: uppercase;
+    display: block;
+    margin-top: 6px;
+  }
+
+  .eco-rating-bar {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .eco-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 12px;
+  }
+
+  .discussion-prompts {
+    background: rgba(0,0,0,0.2);
+    border-left: 3px solid var(--sage);
+    padding: 16px 20px;
+  }
+
+  .prompt-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .prompt-list li {
+    font-style: italic;
+    color: var(--parchment);
+    padding-left: 16px;
+    position: relative;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .prompt-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+  }
+
+  /* Lobby */
+  .lobby-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    gap: 20px;
+    padding: 40px;
+  }
+
+  .lobby-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: var(--amber);
+    line-height: 1.15;
+  }
+
+  .lobby-sub {
+    color: var(--sage);
+    font-style: italic;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+
+  .start-instructions {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 20px 28px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--stone);
+    line-height: 1.8;
+    letter-spacing: 0.06em;
+    text-align: left;
+    max-width: 400px;
+  }
+
+  .start-instructions span {
+    color: var(--amber);
+  }
+
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: rgba(201,168,76,0.3);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg class="raven-icon" viewBox="0 0 100 100" fill="none">
+      <path d="M50 10 C30 10, 15 25, 15 45 C15 60, 22 72, 35 80 L50 95 L65 80 C78 72, 85 60, 85 45 C85 25, 70 10, 50 10Z" fill="rgba(201,168,76,0.15)" stroke="#c9a84c" stroke-width="1.5"/>
+      <path d="M50 20 L45 40 L30 38 L42 50 L38 68 L50 58 L62 68 L58 50 L70 38 L55 40Z" fill="#c9a84c" opacity="0.7"/>
+      <circle cx="42" cy="33" r="3" fill="#c9a84c"/>
+    </svg>
+    <div>
+      <div class="logo-text">Raven's Bridge</div>
+      <span class="logo-sub">Eco-Tourism Marketing Game</span>
+    </div>
+  </div>
+  <div class="host-badge">⬡ Host Control Panel</div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div>
+      <div class="section-label">Session</div>
+      <div class="session-card">
+        <span class="room-code" id="room-code-display">----</span>
+        <span class="room-hint">Room Code</span>
+        <div id="qr-container"><canvas id="qrcode"></canvas></div>
+        <div class="client-url" id="client-url-display">Generating link…</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Visitor Status</div>
+      <div class="status-row">
+        <div class="status-dot waiting" id="status-dot"></div>
+        <span id="status-text">Waiting for visitor…</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Round Progress</div>
+      <div class="round-tracker">
+        <div class="round-pip" id="pip-1"></div>
+        <div class="round-pip" id="pip-2"></div>
+        <div class="round-pip" id="pip-3"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Running Totals</div>
+      <div class="score-mini">
+        <div class="score-item">
+          <span class="score-val" id="total-visitors">0</span>
+          <span class="score-lbl">Visitors</span>
+        </div>
+        <div class="score-item">
+          <span class="score-val" id="total-revenue">$0</span>
+          <span class="score-lbl">Revenue</span>
+        </div>
+        <div class="score-item">
+          <span class="score-val" id="avg-eco">—</span>
+          <span class="score-lbl">Eco Avg</span>
+        </div>
+        <div class="score-item">
+          <span class="score-val" id="avg-sat">—</span>
+          <span class="score-lbl">Satisfaction</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: auto;">
+      <button class="btn btn-danger" onclick="resetGame()" style="width:100%">↺ New Visitor</button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content" id="main-content">
+
+    <!-- LOBBY -->
+    <div class="lobby-screen" id="lobby-screen">
+      <div class="divider"></div>
+      <div class="lobby-title">Ready to Play?</div>
+      <div class="lobby-sub">Have the visitor scan the QR code, then click Start Game when they've joined.</div>
+      <div class="start-instructions">
+        <span>1.</span> Visitor scans QR → joins on phone<br>
+        <span>2.</span> Their screen shows "Waiting for host"<br>
+        <span>3.</span> Click Start Game below<br>
+        <span>4.</span> Read scenarios aloud → click visitor's choice<br>
+        <span>5.</span> Both screens sync in real-time
+      </div>
+      <button class="btn btn-primary" onclick="startGame()" id="start-btn">▶ Start Game</button>
+      <div class="divider"></div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" style="display:none; display:flex; flex-direction:column; gap:22px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span class="phase-banner" id="phase-label">Round 1 of 3</span>
+        <span class="round-badge" id="round-badge">Round 1</span>
+      </div>
+
+      <div class="attraction-header">
+        <div>
+          <div class="attraction-title" id="attraction-name">The Shadow Tavern</div>
+          <div class="attraction-subtitle" id="attraction-desc">A historic establishment with a storied past and vibrant present</div>
+        </div>
+      </div>
+
+      <div class="narration-box">
+        <span class="narration-label">📢 Read aloud to visitor</span>
+        <span id="narration-text"></span>
+      </div>
+
+      <div>
+        <div class="section-label" style="margin-bottom:12px">Choose a Marketing Angle — click visitor's selection</div>
+        <div class="choices-grid" id="choices-grid"></div>
+      </div>
+
+      <div class="result-panel" id="result-panel">
+        <div class="result-title" id="result-title">Result: Historic Speakeasy Campaign</div>
+        <div class="result-grid" id="result-grid"></div>
+        <div id="result-meters"></div>
+        <div class="result-narrative" id="result-narrative"></div>
+        <div class="controls" style="margin-top:16px;">
+          <button class="btn btn-primary" id="next-btn" onclick="nextRound()">Next Round →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINAL SCREEN -->
+    <div id="final-screen" class="final-screen">
+      <div class="final-title">Campaign Complete</div>
+      <div class="final-sub">Here's how your eco-tourism marketing strategy performed</div>
+      <div class="final-stats">
+        <div class="final-stat">
+          <span class="big-val" id="f-visitors">0</span>
+          <span class="big-lbl">Total Visitors</span>
+        </div>
+        <div class="final-stat">
+          <span class="big-val" id="f-revenue">$0</span>
+          <span class="big-lbl">Total Revenue</span>
+        </div>
+        <div class="final-stat">
+          <span class="big-val" id="f-eco">0/10</span>
+          <span class="big-lbl">Eco-Tourism Score</span>
+        </div>
+        <div class="final-stat">
+          <span class="big-val" id="f-sat">0/10</span>
+          <span class="big-lbl">Visitor Satisfaction</span>
+        </div>
+      </div>
+
+      <div class="eco-rating-bar">
+        <div class="eco-title">Campaign Sustainability Rating</div>
+        <div class="meter-row">
+          <span class="meter-label">Environmental Impact</span>
+          <div class="meter-bar"><div class="meter-fill" id="f-eco-bar" style="width:0%"></div></div>
+          <span class="meter-val" id="f-eco-num">—</span>
+        </div>
+        <div class="meter-row">
+          <span class="meter-label">Visitor Satisfaction</span>
+          <div class="meter-bar"><div class="meter-fill" id="f-sat-bar" style="width:0%;background:var(--amber)"></div></div>
+          <span class="meter-val" id="f-sat-num">—</span>
+        </div>
+      </div>
+
+      <div class="discussion-prompts">
+        <div class="section-label">Discussion Questions — ask your visitor</div>
+        <ul class="prompt-list">
+          <li>Did you prioritize profit or sustainability? Would you change anything?</li>
+          <li>Which marketing angle surprised you most with its trade-offs?</li>
+          <li>How does the way we market a place change the kind of visitors it attracts?</li>
+          <li>What does "responsible eco-tourism" actually mean to you now?</li>
+        </ul>
+      </div>
+
+      <div class="controls" style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="resetGame()">↺ Next Visitor</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// FIREBASE CONFIG — Replace with your own project credentials
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDEMO_REPLACE_WITH_YOUR_KEY",
+  authDomain: "ravens-bridge-game.firebaseapp.com",
+  databaseURL: "https://ravens-bridge-game-default-rtdb.firebaseio.com",
+  projectId: "ravens-bridge-game",
+  storageBucket: "ravens-bridge-game.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:0000000000000000"
+};
+
+// ============================================================
+// GAME DATA
+// ============================================================
+const ROUNDS = [
+  {
+    id: 'shadow',
+    name: 'The Shadow Tavern',
+    desc: 'A historic landmark with roots in the Prohibition era — and a menu that celebrates the region\'s farms.',
+    narration: 'Welcome to The Shadow Tavern — one of Raven\'s Bridge\'s most storied establishments. Built in the 1920s, it has hosted everyone from bootleggers to bluegrass musicians. Today, it\'s a thriving venue with local ingredients and live performances. How should we market it?',
+    image: '🏚️',
+    choices: [
+      {
+        id: 'speakeasy', icon: '🥃', name: 'Historic Speakeasy',
+        desc: 'Lean into the Prohibition mystique and underground history.',
+        visitors: 350, revenue: 8000, eco: 7, sat: 8,
+        narrative: 'The speakeasy angle ignites curiosity — visitors flock in for the thrill of history. Revenue surges, but heavier foot traffic strains the venue\'s intimate atmosphere and the surrounding neighborhood.'
+      },
+      {
+        id: 'farmtable', icon: '🌿', name: 'Farm-to-Table Restaurant',
+        desc: 'Highlight local sourcing, seasonal menus, and sustainable cuisine.',
+        visitors: 200, revenue: 5000, eco: 9, sat: 7,
+        narrative: 'Sustainability-focused visitors appreciate the local sourcing story. Growth is modest but the venue attracts guests who care about the region — and spend thoughtfully.'
+      },
+      {
+        id: 'livemusic', icon: '🎵', name: 'Live Music Venue',
+        desc: 'Promote nightly performances and Raven\'s Bridge\'s vibrant arts scene.',
+        visitors: 250, revenue: 6000, eco: 8, sat: 9,
+        narrative: 'Music draws a lively, loyal crowd. Visitor satisfaction peaks — guests linger, return, and spread the word. A balanced choice that nurtures community culture.'
+      }
+    ]
+  },
+  {
+    id: 'refuge',
+    name: "Raven's Bridge Wildlife Refuge",
+    desc: 'A conservation center rehabilitating native species and educating the public about regional biodiversity.',
+    narration: "Next up: the Wildlife Refuge — a hidden gem that rescues and rehabilitates injured animals from across the region. From red-tailed hawks to river otters, every creature here has a story. This isn't just a tourist stop. It's a conservation mission. How do we invite people in without overwhelming the animals?",
+    image: '🦅',
+    choices: [
+      {
+        id: 'rescue', icon: '❤️', name: 'Inspiring Rescue Stories',
+        desc: 'Share emotional animal recovery narratives to drive donations.',
+        visitors: 400, revenue: 6000, eco: 6, sat: 8,
+        narrative: 'Emotional stories go viral. Donations surge — but so does foot traffic. The refuge must balance increased funding with the stress placed on recovering animals.'
+      },
+      {
+        id: 'education', icon: '📚', name: 'Educational Programs',
+        desc: 'Offer structured school visits and wildlife conservation workshops.',
+        visitors: 250, revenue: 4000, eco: 9, sat: 7,
+        narrative: 'School groups and curious families engage deeply. The controlled format protects the animals while building lasting conservation awareness. Sustainable and impactful.'
+      },
+      {
+        id: 'behindscenes', icon: '🔭', name: 'Behind-the-Scenes Tours',
+        desc: 'Offer exclusive small-group tours of the rehabilitation process.',
+        visitors: 150, revenue: 2000, eco: 10, sat: 9,
+        narrative: 'The rarest, most immersive option. Visitors leave transformed — but the refuge keeps its boundaries. Lowest volume, highest conservation integrity, and unforgettable satisfaction.'
+      }
+    ]
+  },
+  {
+    id: 'mansion',
+    name: 'Bright Gardens & Amelia Mansion',
+    desc: 'A Georgian estate surrounded by manicured gardens — part living history museum, part event venue.',
+    narration: "Finally: Bright Gardens and the Amelia Mansion. Built in 1847, this Georgian estate has hosted presidents, society balls, and a rumored ghost or two. Its grounds are impeccable. But how we market it shapes who visits — and what they experience. Do we chase luxury revenue, honor its history, or open it up as a community space?",
+    image: '🏛️',
+    choices: [
+      {
+        id: 'luxury', icon: '✨', name: 'Luxury Historic B&B',
+        desc: 'Market exclusive overnight stays at premium prices.',
+        visitors: 100, revenue: 10000, eco: 7, sat: 8,
+        narrative: 'High-end guests pay a premium for exclusivity. Revenue is exceptional — but access narrows to the wealthy few, and the mansion\'s public heritage role diminishes.'
+      },
+      {
+        id: 'history', icon: '🗝️', name: 'Educational History Tours',
+        desc: 'Open the estate to guided tours exploring its 175-year history.',
+        visitors: 300, revenue: 4000, eco: 8, sat: 7,
+        narrative: 'Broad public access makes history democratic. Moderate revenue but strong community engagement — the mansion fulfills its cultural mission.'
+      },
+      {
+        id: 'events', icon: '🎊', name: 'Event Venue',
+        desc: 'Position the mansion as a premier wedding and corporate event space.',
+        visitors: 500, revenue: 12000, eco: 4, sat: 6,
+        narrative: 'Events maximize revenue and headcount — but the constant turnover of weddings and corporate gatherings erodes the historic atmosphere and drives a high environmental footprint.'
+      }
+    ]
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let db, roomCode, gameState;
+
+function generateRoomCode() {
+  return Math.random().toString(36).substring(2, 6).toUpperCase();
+}
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    return true;
+  } catch(e) {
+    console.warn('Firebase not configured — running in demo mode');
+    return false;
+  }
+}
+
+function pushState(state) {
+  if (db) {
+    db.ref(`rooms/${roomCode}/state`).set(state);
+  }
+}
+
+function listenForVisitor() {
+  if (!db) return;
+  db.ref(`rooms/${roomCode}/visitor`).on('value', snap => {
+    const data = snap.val();
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    if (data && data.connected) {
+      dot.className = 'status-dot connected';
+      txt.textContent = 'Visitor connected ✓';
+    } else {
+      dot.className = 'status-dot waiting';
+      txt.textContent = 'Waiting for visitor…';
+    }
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  initFirebase();
+  roomCode = generateRoomCode();
+  document.getElementById('room-code-display').textContent = roomCode;
+
+  const clientURL = `${window.location.origin}${window.location.pathname.replace('host.html','client.html')}?room=${roomCode}`;
+  document.getElementById('client-url-display').textContent = clientURL;
+
+  if (typeof QRCode !== 'undefined') {
+    QRCode.toCanvas(document.getElementById('qrcode'), clientURL, {
+      width: 130, margin: 1,
+      color: { dark: '#1c1810', light: '#f5f0e8' }
+    });
+  }
+
+  listenForVisitor();
+  initGameState();
+  renderLobby();
+});
+
+function initGameState() {
+  gameState = {
+    phase: 'lobby',
+    round: 0,
+    choices: [],
+    totalVisitors: 0,
+    totalRevenue: 0,
+    ecoScores: [],
+    satScores: []
+  };
+}
+
+// ============================================================
+// GAME FLOW
+// ============================================================
+function renderLobby() {
+  document.getElementById('lobby-screen').style.display = 'flex';
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('final-screen').classList.remove('show');
+  pushState({ phase: 'lobby', roomCode });
+}
+
+function startGame() {
+  gameState.phase = 'playing';
+  gameState.round = 0;
+  document.getElementById('lobby-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+  renderRound();
+}
+
+function renderRound() {
+  const round = ROUNDS[gameState.round];
+  document.getElementById('phase-label').textContent = `Round ${gameState.round + 1} of 3`;
+  document.getElementById('round-badge').textContent = `Round ${gameState.round + 1}`;
+  document.getElementById('attraction-name').textContent = round.name;
+  document.getElementById('attraction-desc').textContent = round.desc;
+  document.getElementById('narration-text').textContent = round.narration;
+
+  // Choices
+  const grid = document.getElementById('choices-grid');
+  grid.innerHTML = '';
+  round.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `
+      <span class="choice-icon">${choice.icon}</span>
+      <span class="choice-name">${choice.name}</span>
+      <span class="choice-desc">${choice.desc}</span>
+    `;
+    btn.onclick = () => selectChoice(choice, btn);
+    grid.appendChild(btn);
+  });
+
+  // Hide result
+  document.getElementById('result-panel').classList.remove('show');
+
+  // Update pips
+  for (let i = 1; i <= 3; i++) {
+    const pip = document.getElementById(`pip-${i}`);
+    pip.className = 'round-pip';
+    if (i < gameState.round + 1) pip.classList.add('done');
+    else if (i === gameState.round + 1) pip.classList.add('active');
+  }
+
+  // Push to client
+  pushState({
+    phase: 'round',
+    round: gameState.round,
+    attraction: round.name,
+    attractionDesc: round.desc,
+    icon: round.image,
+    totalVisitors: gameState.totalVisitors,
+    totalRevenue: gameState.totalRevenue
+  });
+}
+
+function selectChoice(choice, btn) {
+  // Highlight selected
+  document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  // Update totals
+  gameState.totalVisitors += choice.visitors;
+  gameState.totalRevenue += choice.revenue;
+  gameState.ecoScores.push(choice.eco);
+  gameState.satScores.push(choice.sat);
+  gameState.choices.push(choice);
+
+  // Update sidebar
+  document.getElementById('total-visitors').textContent = gameState.totalVisitors.toLocaleString();
+  document.getElementById('total-revenue').textContent = '$' + gameState.totalRevenue.toLocaleString();
+  const avgEco = (gameState.ecoScores.reduce((a,b)=>a+b,0)/gameState.ecoScores.length).toFixed(1);
+  const avgSat = (gameState.satScores.reduce((a,b)=>a+b,0)/gameState.satScores.length).toFixed(1);
+  document.getElementById('avg-eco').textContent = avgEco;
+  document.getElementById('avg-sat').textContent = avgSat;
+
+  // Show result
+  showResult(choice);
+
+  // Push to client
+  pushState({
+    phase: 'result',
+    round: gameState.round,
+    attraction: ROUNDS[gameState.round].name,
+    choice: choice.name,
+    choiceIcon: choice.icon,
+    visitors: choice.visitors,
+    revenue: choice.revenue,
+    eco: choice.eco,
+    sat: choice.sat,
+    narrative: choice.narrative,
+    totalVisitors: gameState.totalVisitors,
+    totalRevenue: gameState.totalRevenue
+  });
+}
+
+function showResult(choice) {
+  document.getElementById('result-title').textContent = `Result: ${choice.name}`;
+
+  const grid = document.getElementById('result-grid');
+  grid.innerHTML = `
+    <div class="result-stat"><span class="val">${choice.visitors.toLocaleString()}</span><span class="lbl">Visitors Attracted</span></div>
+    <div class="result-stat"><span class="val">$${choice.revenue.toLocaleString()}</span><span class="lbl">Revenue Generated</span></div>
+    <div class="result-stat"><span class="val">${choice.eco}/10</span><span class="lbl">Eco-Tourism Score</span></div>
+    <div class="result-stat"><span class="val">${choice.sat}/10</span><span class="lbl">Visitor Satisfaction</span></div>
+  `;
+
+  document.getElementById('result-meters').innerHTML = `
+    <div class="meter-row">
+      <span class="meter-label">Eco-Tourism Score</span>
+      <div class="meter-bar"><div class="meter-fill" style="width:${choice.eco*10}%; background:var(--sage)"></div></div>
+      <span class="meter-val">${choice.eco}/10</span>
+    </div>
+    <div class="meter-row">
+      <span class="meter-label">Visitor Satisfaction</span>
+      <div class="meter-bar"><div class="meter-fill" style="width:${choice.sat*10}%; background:var(--amber)"></div></div>
+      <span class="meter-val">${choice.sat}/10</span>
+    </div>
+  `;
+
+  document.getElementById('result-narrative').textContent = choice.narrative;
+
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.textContent = gameState.round < 2 ? 'Next Round →' : 'See Final Results →';
+
+  document.getElementById('result-panel').classList.add('show');
+}
+
+function nextRound() {
+  gameState.round++;
+  if (gameState.round >= 3) {
+    showFinal();
+  } else {
+    renderRound();
+  }
+}
+
+function showFinal() {
+  document.getElementById('game-screen').style.display = 'none';
+  const fs = document.getElementById('final-screen');
+  fs.classList.add('show');
+
+  const avgEco = (gameState.ecoScores.reduce((a,b)=>a+b,0)/gameState.ecoScores.length).toFixed(1);
+  const avgSat = (gameState.satScores.reduce((a,b)=>a+b,0)/gameState.satScores.length).toFixed(1);
+
+  document.getElementById('f-visitors').textContent = gameState.totalVisitors.toLocaleString();
+  document.getElementById('f-revenue').textContent = '$' + gameState.totalRevenue.toLocaleString();
+  document.getElementById('f-eco').textContent = avgEco + '/10';
+  document.getElementById('f-sat').textContent = avgSat + '/10';
+  document.getElementById('f-eco-num').textContent = avgEco + '/10';
+  document.getElementById('f-sat-num').textContent = avgSat + '/10';
+
+  setTimeout(() => {
+    document.getElementById('f-eco-bar').style.width = (avgEco * 10) + '%';
+    document.getElementById('f-sat-bar').style.width = (avgSat * 10) + '%';
+  }, 300);
+
+  // Update pips
+  for (let i = 1; i <= 3; i++) document.getElementById(`pip-${i}`).className = 'round-pip done';
+
+  pushState({
+    phase: 'final',
+    totalVisitors: gameState.totalVisitors,
+    totalRevenue: gameState.totalRevenue,
+    avgEco,
+    avgSat,
+    choices: gameState.choices.map(c => ({ name: c.name, icon: c.icon }))
+  });
+}
+
+function resetGame() {
+  initGameState();
+  document.getElementById('final-screen').classList.remove('show');
+  document.getElementById('total-visitors').textContent = '0';
+  document.getElementById('total-revenue').textContent = '$0';
+  document.getElementById('avg-eco').textContent = '—';
+  document.getElementById('avg-sat').textContent = '—';
+  for (let i = 1; i <= 3; i++) document.getElementById(`pip-${i}`).className = 'round-pip';
+  renderLobby();
+}
+</script>
+
+</body>
+</html>
